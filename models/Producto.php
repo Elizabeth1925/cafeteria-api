@@ -1,102 +1,101 @@
-<?php
+﻿<?php
 
 class Producto
 {
-    private $conn;
-    private $table = "productos";
+    private PDO $conexion;
 
-    public function __construct($db)
+    public function __construct(PDO $conexion)
     {
-        $this->conn = $db;
+        $this->conexion = $conexion;
     }
 
-    // LISTAR PRODUCTOS
-    public function listar()
+    public function listar(array $filtros = []): array
     {
-        $query = "SELECT * FROM {$this->table} ORDER BY id ASC";
+        $sql = "SELECT id, nombre, categoria, precio, stock, activo FROM productos WHERE 1 = 1";
+        $parametros = [];
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
+        if (isset($filtros["categoria"]) && trim($filtros["categoria"]) !== "") {
+            $sql .= " AND categoria = :categoria";
+            $parametros[":categoria"] = trim($filtros["categoria"]);
+        }
+
+        if (isset($filtros["nombre"]) && trim($filtros["nombre"]) !== "") {
+            $sql .= " AND nombre LIKE :nombre";
+            $parametros[":nombre"] = "%" . trim($filtros["nombre"]) . "%";
+        }
+
+        $sql .= " ORDER BY id";
+        $stmt = $this->conexion->prepare($sql);
+        $stmt->execute($parametros);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // BUSCAR PRODUCTO POR ID
-    public function buscar($id)
+    public function buscarPorId(int $id): ?array
     {
-        $query = "SELECT * FROM {$this->table} WHERE id = :id";
-
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        $stmt->execute();
-
+        $sql = "SELECT id, nombre, categoria, precio, stock, activo FROM productos WHERE id = :id";
+        $stmt = $this->conexion->prepare($sql);
+        $stmt->execute([":id" => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // CREAR PRODUCTO
-    public function crear($nombre, $categoria, $precio, $stock, $activo)
+    public function crear(array $datos): string|false
     {
-        $query = "INSERT INTO {$this->table}
-                  (nombre, categoria, precio, stock, activo)
-                  VALUES
-                  (:nombre, :categoria, :precio, :stock, :activo)";
+        $sql = "INSERT INTO productos (nombre, categoria, precio, stock, activo) VALUES (:nombre, :categoria, :precio, :stock, :activo)";
+        $stmt = $this->conexion->prepare($sql);
+        $stmt->execute([
+            ":nombre" => $datos["nombre"],
+            ":categoria" => $datos["categoria"],
+            ":precio" => $datos["precio"],
+            ":stock" => $datos["stock"],
+            ":activo" => $datos["activo"]
+        ]);
+        return $this->conexion->lastInsertId();
+    }
 
-        $stmt = $this->conn->prepare($query);
+    public function actualizar(int $id, array $datos): bool
+    {
+        $campos = [];
+        $parametros = [":id" => $id];
 
-        $stmt->bindParam(":nombre", $nombre);
-        $stmt->bindParam(":categoria", $categoria);
-        $stmt->bindParam(":precio", $precio);
-        $stmt->bindParam(":stock", $stock);
-        $stmt->bindParam(":activo", $activo);
-
-        if ($stmt->execute()) {
-            return $this->conn->lastInsertId();
+        if (isset($datos["nombre"])) {
+            $campos[] = "nombre = :nombre";
+            $parametros[":nombre"] = $datos["nombre"];
         }
 
-        return false;
+        if (isset($datos["categoria"])) {
+            $campos[] = "categoria = :categoria";
+            $parametros[":categoria"] = $datos["categoria"];
+        }
+
+        if (isset($datos["precio"])) {
+            $campos[] = "precio = :precio";
+            $parametros[":precio"] = $datos["precio"];
+        }
+
+        if (isset($datos["stock"])) {
+            $campos[] = "stock = :stock";
+            $parametros[":stock"] = $datos["stock"];
+        }
+
+        if (isset($datos["activo"])) {
+            $campos[] = "activo = :activo";
+            $parametros[":activo"] = $datos["activo"];
+        }
+
+        if (empty($campos)) {
+            return false;
+        }
+
+        $sql = "UPDATE productos SET " . implode(", ", $campos) . " WHERE id = :id";
+        $stmt = $this->conexion->prepare($sql);
+        return $stmt->execute($parametros);
     }
 
-    // ACTUALIZAR PRODUCTO
-    public function actualizar(
-        $id,
-        $nombre,
-        $categoria,
-        $precio,
-        $stock,
-        $activo
-    ) {
-        $query = "UPDATE {$this->table}
-                  SET nombre = :nombre,
-                      categoria = :categoria,
-                      precio = :precio,
-                      stock = :stock,
-                      activo = :activo
-                  WHERE id = :id";
-
-        $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":id", $id);
-        $stmt->bindParam(":nombre", $nombre);
-        $stmt->bindParam(":categoria", $categoria);
-        $stmt->bindParam(":precio", $precio);
-        $stmt->bindParam(":stock", $stock);
-        $stmt->bindParam(":activo", $activo);
-
-        return $stmt->execute();
-    }
-
-    // ELIMINAR PRODUCTO
-    public function eliminar($id)
+    public function eliminar(int $id): bool
     {
-        $query = "DELETE FROM {$this->table} WHERE id = :id";
-
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-
-        return $stmt->execute();
+        $sql = "DELETE FROM productos WHERE id = :id";
+        $stmt = $this->conexion->prepare($sql);
+        return $stmt->execute([":id" => $id]);
     }
-    
 }
-
-
-?> 

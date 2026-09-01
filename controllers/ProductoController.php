@@ -2,120 +2,57 @@
 
 class ProductoController
 {
-    private $service;
+    private ProductoService $service;
 
-    public function __construct($service)
+    public function __construct(ProductoService $service)
     {
         $this->service = $service;
     }
 
-    public function procesar()
+    public function manejar(string $metodo, ?int $id, ?array $datos, array $query = [])
     {
-        $method = $_SERVER["REQUEST_METHOD"];
-
-        $id = $_GET["id"] ?? null;
-
-        $data = json_decode(
-            file_get_contents("php://input"),
-            true
-        );
-
-        switch ($method) {
-
+        switch ($metodo) {
             case "GET":
-
                 if ($id !== null) {
-                    $response = $this->buscar($id);
-                } else {
-                    $response = $this->listar();
+                    return $this->service->consultar($id);
                 }
-
-                break;
+                return $this->service->listar($query);
 
             case "POST":
-
-                $response = $this->crear($data ?? []);
-
-                break;
+                return $this->service->crear($datos);
 
             case "PUT":
-
                 if ($id === null) {
-                    $response = [
-                        "success" => false,
+                    return [
                         "status" => 400,
-                        "mensaje" => "Debe proporcionar el ID del producto"
+                        "body" => [
+                            "success" => false,
+                            "mensaje" => "Debe enviar el id del producto"
+                        ]
                     ];
-                } else {
-                    $response = $this->actualizar(
-                        $id,
-                        $data ?? []
-                    );
                 }
-
-                break;
+                return $this->service->actualizar($id, $datos);
 
             case "DELETE":
-
                 if ($id === null) {
-                    $response = [
-                        "success" => false,
+                    return [
                         "status" => 400,
-                        "mensaje" => "Debe proporcionar el ID del producto"
+                        "body" => [
+                            "success" => false,
+                            "mensaje" => "Debe enviar el id del producto"
+                        ]
                     ];
-                } else {
-                    $response = $this->eliminar($id);
                 }
-
-                break;
+                return $this->service->eliminar($id);
 
             default:
-
-                $response = [
-                    "success" => false,
+                return [
                     "status" => 405,
-                    "mensaje" => "Método HTTP no permitido"
+                    "body" => [
+                        "success" => false,
+                        "mensaje" => "Método HTTP no permitido"
+                    ]
                 ];
         }
-
-        $status = $response["status"] ?? 200;
-
-        http_response_code($status);
-
-        echo json_encode(
-            $response,
-            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
-        );
-    }
-
-    public function listar()
-    {
-        $productos = $this->service->listar();
-
-        return [
-            "success" => true,
-            "status" => 200,
-            "data" => $productos
-        ];
-    }
-
-    public function buscar($id)
-    {
-        return $this->service->buscar($id);
-    }
-
-    public function crear($data)
-    {
-        return $this->service->crear($data);
-    }
-
-    public function actualizar($id, $data)
-    {
-        return $this->service->actualizar($id, $data);
-    }
-
-    public function eliminar($id)
-    {
-        return $this->service->eliminar($id);
     }
 }

@@ -1,202 +1,273 @@
-<?php
+﻿<?php
 
 class ProductoService
 {
-    private $producto;
+    private Producto $modelo;
 
-    public function __construct($producto)
+    public function __construct(Producto $modelo)
     {
-        $this->producto = $producto;
+        $this->modelo = $modelo;
     }
 
-    // LISTAR
-    public function listar()
+    public function listar(array $filtros = []): array
     {
-        return $this->producto->listar();
+        return [
+            "status" => 200,
+            "body" => [
+                "success" => true,
+                "data" => $this->modelo->listar($filtros)
+            ]
+        ];
     }
 
-    // BUSCAR
-    public function buscar($id)
+    public function consultar(int $id): array
     {
         if (!$id || $id <= 0) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "ID inválido"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "ID inválido"
+                ]
             ];
         }
 
-        $producto = $this->producto->buscar($id);
+        $producto = $this->modelo->buscarPorId($id);
 
         if (!$producto) {
             return [
-                "success" => false,
                 "status" => 404,
-                "mensaje" => "Producto no encontrado"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "Producto no encontrado"
+                ]
             ];
         }
 
         return [
-            "success" => true,
             "status" => 200,
-            "data" => $producto
+            "body" => [
+                "success" => true,
+                "data" => $producto
+            ]
         ];
     }
 
-    // CREAR
-    public function crear($data)
+    public function crear(array $datos): array
     {
         if (
-            !isset($data["nombre"]) ||
-            !isset($data["categoria"]) ||
-            !isset($data["precio"]) ||
-            !isset($data["stock"])
+            !isset($datos["nombre"]) ||
+            !isset($datos["categoria"]) ||
+            !isset($datos["precio"]) ||
+            !isset($datos["stock"])
         ) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "Faltan datos obligatorios"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "Debe enviar nombre, categoría, precio y stock"
+                ]
             ];
         }
 
-        $nombre = trim($data["nombre"]);
-        $categoria = trim($data["categoria"]);
-        $precio = $data["precio"];
-        $stock = $data["stock"];
-        $activo = $data["activo"] ?? true;
+        $nombre = trim($datos["nombre"]);
+        $categoria = trim($datos["categoria"]);
 
         if ($nombre === "" || $categoria === "") {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "El nombre y la categoría son obligatorios"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "El nombre y la categoría no pueden estar vacíos"
+                ]
             ];
         }
 
-        if ($precio <= 0) {
+        if ($datos["precio"] <= 0) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "El precio debe ser mayor que 0"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "El precio debe ser mayor que 0"
+                ]
             ];
         }
 
-        if ($stock < 0) {
+        if ($datos["stock"] < 0) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "El stock no puede ser negativo"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "El stock no puede ser negativo"
+                ]
             ];
         }
 
-        $id = $this->producto->crear(
-            $nombre,
-            $categoria,
-            $precio,
-            $stock,
-            $activo
-        );
+        $datos["nombre"] = $nombre;
+        $datos["categoria"] = $categoria;
+        $datos["activo"] = isset($datos["activo"]) ? (bool) $datos["activo"] : true;
 
-        if ($id) {
-            return [
+        $id = $this->modelo->crear($datos);
+
+        return [
+            "status" => 201,
+            "body" => [
                 "success" => true,
-                "status" => 201,
                 "mensaje" => "Producto registrado correctamente",
-                "producto_id" => $id
-            ];
-        }
-
-        return [
-            "success" => false,
-            "status" => 500,
-            "mensaje" => "No se pudo registrar el producto"
+                "id" => (int) $id
+            ]
         ];
     }
 
-    // ACTUALIZAR
-    public function actualizar($id, $data)
+    public function actualizar(int $id, array $datos): array
     {
-        $producto = $this->producto->buscar($id);
+        if (!$id || $id <= 0) {
+            return [
+                "status" => 400,
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "ID inválido"
+                ]
+            ];
+        }
+
+        $producto = $this->modelo->buscarPorId($id);
 
         if (!$producto) {
             return [
-                "success" => false,
                 "status" => 404,
-                "mensaje" => "Producto no encontrado"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "Producto no encontrado"
+                ]
             ];
         }
 
-        $nombre = $data["nombre"] ?? $producto["nombre"];
-        $categoria = $data["categoria"] ?? $producto["categoria"];
-        $precio = $data["precio"] ?? $producto["precio"];
-        $stock = $data["stock"] ?? $producto["stock"];
-        $activo = $data["activo"] ?? $producto["activo"];
+        $permitidos = ["nombre", "categoria", "precio", "stock", "activo"];
+        $datosValidos = [];
 
-        if ($precio <= 0) {
+        foreach ($permitidos as $campo) {
+            if (array_key_exists($campo, $datos)) {
+                $datosValidos[$campo] = $datos[$campo];
+            }
+        }
+
+        if (empty($datosValidos)) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "El precio debe ser mayor que 0"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "Debe enviar datos para actualizar"
+                ]
             ];
         }
 
-        if ($stock < 0) {
+        if (isset($datosValidos["nombre"])) {
+            if (trim($datosValidos["nombre"]) === "") {
+                return [
+                    "status" => 400,
+                    "body" => [
+                        "success" => false,
+                        "mensaje" => "El nombre no puede estar vacío"
+                    ]
+                ];
+            }
+            $datosValidos["nombre"] = trim($datosValidos["nombre"]);
+        }
+
+        if (isset($datosValidos["categoria"])) {
+            if (trim($datosValidos["categoria"]) === "") {
+                return [
+                    "status" => 400,
+                    "body" => [
+                        "success" => false,
+                        "mensaje" => "La categoría no puede estar vacía"
+                    ]
+                ];
+            }
+            $datosValidos["categoria"] = trim($datosValidos["categoria"]);
+        }
+
+        if (isset($datosValidos["precio"]) && $datosValidos["precio"] <= 0) {
             return [
-                "success" => false,
                 "status" => 400,
-                "mensaje" => "El stock no puede ser negativo"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "El precio debe ser mayor que 0"
+                ]
             ];
         }
 
-        $resultado = $this->producto->actualizar(
-            $id,
-            $nombre,
-            $categoria,
-            $precio,
-            $stock,
-            $activo
-        );
-
-        if ($resultado) {
+        if (isset($datosValidos["stock"]) && $datosValidos["stock"] < 0) {
             return [
+                "status" => 400,
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "El stock no puede ser negativo"
+                ]
+            ];
+        }
+
+        if (isset($datosValidos["activo"])) {
+            $datosValidos["activo"] = (bool) $datosValidos["activo"];
+        }
+
+        $this->modelo->actualizar($id, $datosValidos);
+
+        return [
+            "status" => 200,
+            "body" => [
                 "success" => true,
-                "status" => 200,
                 "mensaje" => "Producto actualizado correctamente"
-            ];
-        }
-
-        return [
-            "success" => false,
-            "status" => 500,
-            "mensaje" => "No se pudo actualizar el producto"
+            ]
         ];
     }
 
-    // ELIMINAR
-    public function eliminar($id)
+    public function eliminar(int $id): array
     {
-        $producto = $this->producto->buscar($id);
+        if (!$id || $id <= 0) {
+            return [
+                "status" => 400,
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "ID inválido"
+                ]
+            ];
+        }
+
+        $producto = $this->modelo->buscarPorId($id);
 
         if (!$producto) {
             return [
-                "success" => false,
                 "status" => 404,
-                "mensaje" => "Producto no encontrado"
+                "body" => [
+                    "success" => false,
+                    "mensaje" => "Producto no encontrado"
+                ]
             ];
         }
 
-        if ($this->producto->eliminar($id)) {
-            return [
-                "success" => true,
-                "status" => 200,
-                "mensaje" => "Producto eliminado correctamente"
-            ];
+        try {
+            $this->modelo->eliminar($id);
+        } catch (PDOException $e) {
+            if ($e->getCode() == "23000") {
+                return [
+                    "status" => 409,
+                    "body" => [
+                        "success" => false,
+                        "mensaje" => "El producto está asociado a un pedido"
+                    ]
+                ];
+            }
+            throw $e;
         }
 
         return [
-            "success" => false,
-            "status" => 500,
-            "mensaje" => "No se pudo eliminar el producto"
+            "status" => 200,
+            "body" => [
+                "success" => true,
+                "mensaje" => "Producto eliminado correctamente"
+            ]
         ];
     }
 }
