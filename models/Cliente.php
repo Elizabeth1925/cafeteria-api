@@ -34,7 +34,9 @@ class Cliente
             ":id" => $id
         ]);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $cliente ?: null;
     }
 
     public function buscarPorCedula(string $cedula): ?array
@@ -49,7 +51,9 @@ class Cliente
             ":cedula" => $cedula
         ]);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $cliente ?: null;
     }
 
     public function crear(array $datos): string|false

@@ -1,78 +1,64 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Servidor: 127.0.0.1
--- Tiempo de generación: 30-08-2026 a las 02:37:29
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Script compatible con MariaDB/MySQL.
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+CREATE DATABASE IF NOT EXISTS cafeteria_api;
+USE cafeteria_api;
 
+DROP TABLE IF EXISTS detalle_pedido, pedidos, productos, clientes;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+CREATE TABLE clientes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  cedula VARCHAR(10) NOT NULL UNIQUE,
+  nombre VARCHAR(100) NOT NULL,
+  correo VARCHAR(100) NOT NULL
+);
 
---
--- Base de datos: `cafeteria_api`
---
+CREATE TABLE productos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  categoria VARCHAR(50) NOT NULL,
+  precio DECIMAL(10,2) NOT NULL,
+  stock INT NOT NULL,
+  activo BOOLEAN NOT NULL DEFAULT TRUE
+);
 
--- --------------------------------------------------------
+CREATE TABLE pedidos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  cliente_id INT NOT NULL,
+  fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+  total DECIMAL(10,2) NOT NULL DEFAULT 0,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
 
---
--- Estructura de tabla para la tabla `productos`
---
+CREATE TABLE detalle_pedido (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  pedido_id INT NOT NULL,
+  producto_id INT NOT NULL,
+  cantidad INT NOT NULL,
+  precio_unitario DECIMAL(10,2) NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL,
+  FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+  FOREIGN KEY (producto_id) REFERENCES productos(id)
+);
 
-CREATE TABLE `productos` (
-  `id` int(11) NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `categoria` varchar(50) NOT NULL,
-  `precio` decimal(10,2) NOT NULL,
-  `stock` int(11) NOT NULL,
-  `activo` tinyint(1) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO clientes (cedula, nombre, correo) VALUES
+('1801234567', 'Ana Perez', 'ana@gmail.com'),
+('1802345678', 'Juan Lopez', 'juan@gmail.com'),
+('1803456789', 'Maria Torres', 'maria@gmail.com'),
+('1804567890', 'Carlos Diaz', 'carlos@gmail.com'),
+('1805678901', 'Sofia Ruiz', 'sofia@gmail.com');
 
---
 -- Volcado de datos para la tabla `productos`
 --
 
-INSERT INTO `productos` (`id`, `nombre`, `categoria`, `precio`, `stock`, `activo`) VALUES
-(1, 'Capuchino', 'Bebidas', 2.75, 30, 1),
-(2, 'Café americano', 'Bebidas', 1.50, 30, 1),
-(3, 'Té', 'Bebidas', 1.25, 25, 1),
-(4, 'Chocolate caliente', 'Bebidas', 2.00, 15, 1),
-(5, 'Jugo de naranja', 'Bebidas', 1.75, 20, 1),
-(6, 'Sándwich de pollo', 'Comida', 3.50, 10, 1),
-(7, 'Hamburguesa', 'Comida', 4.00, 12, 1),
-(8, 'Empanada', 'Comida', 1.25, 25, 1),
-(9, 'Pastel de chocolate', 'Postres', 2.50, 8, 1),
-(10, 'Galletas', 'Postres', 1.00, 30, 1);
-
---
--- Índices para tablas volcadas
---
-
---
--- Indices de la tabla `productos`
---
-ALTER TABLE `productos`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT de las tablas volcadas
---
-
---
--- AUTO_INCREMENT de la tabla `productos`
---
-ALTER TABLE `productos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+INSERT INTO productos (nombre, categoria, precio, stock, activo) VALUES
+('Cafe Americano', 'Bebidas', 1.50, 20, TRUE),
+('Capuchino', 'Bebidas', 2.50, 15, TRUE),
+('Chocolate', 'Bebidas', 2.00, 10, TRUE),
+('Te', 'Bebidas', 1.25, 20, TRUE),
+('Sandwich', 'Comida', 3.50, 10, TRUE),
+('Hamburguesa', 'Comida', 5.00, 8, TRUE),
+('Empanada', 'Comida', 1.75, 15, TRUE),
+('Pastel', 'Postres', 2.50, 5, TRUE),
+('Galleta', 'Postres', 1.00, 20, TRUE),
+('Jugo Natural', 'Bebidas', 2.25, 12, TRUE);

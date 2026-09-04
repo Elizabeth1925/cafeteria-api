@@ -202,6 +202,33 @@ class PedidoService
                 ];
             }
 
+            $precio = (float) $producto["precio"];
+            $stock = (int) $producto["stock"];
+
+            if ($precio <= 0) {
+
+                return [
+                    "status" => 400,
+                    "body" => [
+                        "success" => false,
+                        "mensaje" =>
+                        "El precio del producto debe ser mayor que 0"
+                    ]
+                ];
+            }
+
+            if ($stock < 0) {
+
+                return [
+                    "status" => 400,
+                    "body" => [
+                        "success" => false,
+                        "mensaje" =>
+                        "El stock del producto no puede ser negativo"
+                    ]
+                ];
+            }
+
 
             if (!(bool) $producto["activo"]) {
 
@@ -220,7 +247,7 @@ class PedidoService
 
             if (
                 $cantidad >
-                $producto["stock"]
+                $stock
             ) {
 
                 return [
@@ -234,9 +261,6 @@ class PedidoService
                 ];
             }
 
-
-            $precio =
-                (float) $producto["precio"];
 
             $subtotal =
                 $precio * $cantidad;
@@ -268,6 +292,16 @@ class PedidoService
                     $detalles,
                     $total
                 );
+        } catch (PDOException $e) {
+
+            return [
+                "status" => 500,
+                "body" => [
+                    "success" => false,
+                    "mensaje" =>
+                    "Error interno al registrar el pedido"
+                ]
+            ];
         } catch (Exception $e) {
 
             return [

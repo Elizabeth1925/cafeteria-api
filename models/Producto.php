@@ -36,7 +36,9 @@ class Producto
         $sql = "SELECT id, nombre, categoria, precio, stock, activo FROM productos WHERE id = :id";
         $stmt = $this->conexion->prepare($sql);
         $stmt->execute([":id" => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $producto = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $producto ?: null;
     }
 
     public function crear(array $datos): string|false
